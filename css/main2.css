@@ -1,0 +1,97 @@
+.profile {
+    width: 50px;
+    display: block;
+        float: left;
+}
+.off {
+    text-align: center;
+    font-size: 16px
+}
+.box {
+    width: 200px;
+    background: cadetblue;
+    margin: 10px;
+    padding: 40px;
+    border-radius: 5px;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 15px;
+    color: white;
+    box-shadow: 10px 10px black;
+}
+.container {
+    width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.blog-content {
+    width: 80%;
+    height: 200px;
+    background: #eee;
+    float: left;
+
+}
+
+.blog-img {
+    width: 20%;
+    height: 200px;
+        background: #eee;
+        float: left;
+    display: flex;
+}
+
+.right {
+    width: 100%;
+    height: 300px;
+    background: coral;
+        float: left;
+
+}
+
+.footer {
+    width: 20%;
+    height: 800px;
+    background: grey;
+    clear: both;
+    float: left;
+
+}
+
+.blog-frofile {
+    width: 100%;
+    height: 20%;
+    background: #eee;
+    
+}
+
+
+
+.Building {
+    width: 150px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+        margin: auto;
+
+}
+
+.name {
+    float: left
+}
+
+.navbar li{
+    display: inline-block;
+    width: 60px;
+    text-align: center;
+    background: #eee;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.navbar a {
+    
+    font-size: 16px;
+    text-decoration: none;
+}
+
