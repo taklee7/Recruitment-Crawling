@@ -1,21 +1,17 @@
-require('dotenv').config();
 const puppeteer = require('puppeteer');
 
 async function scrapeData() {
     let browser;
     try {
         browser = await puppeteer.launch({
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            headless: true
         });
         const page = await browser.newPage();
 
-        // 제주 사이트 방문
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
         await page.goto("https://recruit.jejuair.net/jobinfo/");
 
-        // 요소가 로드될 때까지 대기
         try {
             await page.waitForSelector("table[summary='현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다']");
         } catch (e) {
@@ -145,3 +141,10 @@ if (data) {
 res.status(500).json({ error: 'Failed to fetch data' });
 }
 };
+
+if (require.main === module) {
+(async () => {
+const data = await scrapeData();
+console.log(data);
+})();
+}
