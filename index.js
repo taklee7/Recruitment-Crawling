@@ -1,48 +1,53 @@
+require('dotenv').config();
 const puppeteer = require('puppeteer');
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const UPDATE_INTERVAL = 25 * 60 * 1000; // 25분을 밀리초로 표현
+
+app.use(cors());
+app.use(express.json());
+
+let cachedData = null;
 
 async function scrapeData() {
-    let browser;
-    try {
-        browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            headless: true
-        });
-        const page = await browser.newPage();
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      executablePath: '/app/.apt/usr/bin/google-chrome',
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
 
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
-        await page.goto("https://recruit.jejuair.net/jobinfo/");
-
-        try {
-            await page.waitForSelector("table[summary='현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다']");
-        } catch (e) {
-            console.error('셀렉터를 찾는 동안 오류가 발생했습니다:', e);
-        }
-
-        const jejuData = await page.$$eval(
-            'table[summary="현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다"] tr:not(:first-child)',
-            rows => {
-                return rows.map(row => {
-                    const columns = row.querySelectorAll('td');
-                    const title = columns[2]?.querySelector('a')?.innerText.trim();
-                    const day = columns[4]?.innerText.trim() + "~" + columns[6]?.innerText.trim() || '상시';
-                    const url = columns[2]?.querySelector('a')?.href;
-                    if (title && day && url) {
-                        return { title, day, url };
-                    }
-                    return undefined;
-                }).filter(Boolean);
-            }
-        );
-
-    // 아시아나 사이트 방문
+    const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
-    await page.goto("https://flyasiana.recruiter.co.kr/career/recruitment");
+
+    // 제주 사이트 방문
+    await page.goto("https://recruit.jejuair.net/jobinfo/");
+
     // 요소가 로드될 때까지 대기
-    try { 
-      await page.waitForSelector(".RecruitList_recruit-list__cjKzb.RecruitList_TABLET__MsUU5");
-    } catch (e) {
-        console.error('셀렉터를 찾는 동안 오류가 발생했습니다:', e);
-    }
+    await page.waitForSelector("table[summary='현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다']", { timeout: 10000 });
+
+    // 정보 추출
+    const jejuData = await page.$$eval(
+      'table[summary="현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다"] tr:not(:first-child)',
+      rows => {
+        return rows.map(row => {
+          const columns = row.querySelectorAll('td');
+          const title = columns[2]?.querySelector('a')?.innerText.trim();
+          const day = columns[4]?.innerText.trim() + "~" + columns[6]?.innerText.trim() || '상시';
+          const url = columns[2]?.querySelector('a')?.href;
+          if (title && day && url) {
+            return { title, day, url };
+          }
+          return undefined;
+        }).filter(Boolean);
+      }
+    );
+
     // 아시아나 정보 추출
     const asianaData = (await page.$$eval('a.RecruitList_list-item__RF9iK.RecruitList_TABLET__MsUU5', elements => elements.map(el => {
             const title = el.querySelector('.RecruitList_title__nyhAL')?.innerText;
@@ -120,31 +125,42 @@ return {
     '티웨이': ''
 };
 } catch (error) {
-console.error("Error scraping data:", error);
+console.error('Error during scraping:', error);
 return null;
 } finally {
 if (browser) {
-    await browser.close();
+  await browser.close();
 }
 }
 }
 
-module.exports = async (req, res) => {
+app.get('/api', async (req, res) => {
+if (cachedData) {
+res.status(200).send(cachedData);
+} else {
+res.status(500).send({ message: "Failed to fetch data." });
+}
+});
+
+// 데이터를 주기적으로 업데이트하는 함수
+async function updateDataPeriodically() {
 try {
 const data = await scrapeData();
 if (data) {
-    res.status(200).json(data);
+  cachedData = data;
+  console.log("Data updated successfully.");
 } else {
-    res.status(500).json({ error: 'Failed to fetch data' });
+  console.error("Failed to update data.");
 }
 } catch (error) {
-res.status(500).json({ error: 'Failed to fetch data' });
+console.error("Error updating data:", error);
 }
-};
+}
 
-if (require.main === module) {
-(async () => {
-const data = await scrapeData();
-console.log(data);
-})();
-}
+// 서버 시작 시 데이터를 처음으로 업데이트하고, 이후 설정한 시간 간격(UPDATE_INTERVAL)으로 업데이트를 반복
+updateDataPeriodically();
+setInterval(updateDataPeriodically, UPDATE_INTERVAL);
+
+app.listen(PORT, () => {
+console.log(`Server is running on port ${PORT}`);
+});
