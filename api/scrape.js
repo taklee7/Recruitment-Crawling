@@ -11,11 +11,12 @@ app.use(cors());
 app.use(express.json());
 
 async function scrapeData() {
-  let browser;
-    browser = await puppeteer.launch({
-      executablePath: '/app/.apt/usr/bin/google-chrome',
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    let browser;
+    try {
+        browser = await puppeteer.launch({
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
 const page = await browser.newPage();
 
@@ -132,38 +133,50 @@ return {
     '에어서울': seoulData,
     '티웨이': ''
 };
+} catch (error) {
+    console.error("Error scraping data:", error);
+    return null;
+} finally {
+    if (browser) {
+        await browser.close();
+    }
+}
 }
 
 app.get('/scrape', async (req, res) => {
-    try {
-        const data = await scrapeData();
+try {
+    const data = await scrapeData();
+    if (data) {
         res.status(200).json(data);
-    } catch (error) {
+    } else {
         res.status(500).json({ error: 'Failed to fetch data' });
     }
+} catch (error) {
+    res.status(500).json({ error: 'Failed to fetch data' });
+}
 });
 
-
 // 데이터를 주기적으로 업데이트하는 함수
+let cachedData = null;
+
 async function updateDataPeriodically() {
-    try {
-      const data = await scrapeData();
-      if (data) {
+try {
+    const data = await scrapeData();
+    if (data) {
         cachedData = data;
         console.log("Data updated successfully.");
-      } else {
+    } else {
         console.error("Failed to update data.");
-      }
-    } catch (error) {
-      console.error("Error updating data:", error);
     }
-  }
-  
-  // 서버 시작 시 데이터를 처음으로 업데이트하고, 이후 설정한 시간 간격(UPDATE_INTERVAL)으로 업데이트를 반복
-  updateDataPeriodically();
-  setInterval(updateDataPeriodically, UPDATE_INTERVAL);
-  
-  app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  });
-  
+} catch (error) {
+    console.error("Error updating data:", error);
+}
+}
+
+// 서버 시작 시 데이터를 처음으로 업데이트하고, 이후 설정한 시간 간격(UPDATE_INTERVAL)으로 업데이트를 반복
+updateDataPeriodically();
+setInterval(updateDataPeriodically, UPDATE_INTERVAL);
+
+app.listen(PORT, () => {
+console.log(`Server is running on port ${PORT}`);
+});
