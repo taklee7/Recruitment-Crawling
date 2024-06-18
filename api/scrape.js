@@ -1,52 +1,42 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
-const express = require('express');
-const cors = require('cors');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-const UPDATE_INTERVAL = 25 * 60 * 1000; // 25분을 밀리초로 표현
-
-app.use(cors());
-app.use(express.json());
 
 async function scrapeData() {
     let browser;
     try {
         browser = await puppeteer.launch({
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    });
-const page = await browser.newPage();
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        });
+        const page = await browser.newPage();
 
-    // 제주 사이트 방문
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
-    await page.goto("https://recruit.jejuair.net/jobinfo/");
+        // 제주 사이트 방문
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
+        await page.goto("https://recruit.jejuair.net/jobinfo/");
 
-    // 요소가 로드될 때까지 대기
-    try {
-        // 기존 셀렉터를 좀 더 명확한 것으로 수정
-        await page.waitForSelector("table[summary='현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다']");
-    } catch (e) {
-        console.error('셀렉터를 찾는 동안 오류가 발생했습니다:', e);
-    }
+        // 요소가 로드될 때까지 대기
+        try {
+            await page.waitForSelector("table[summary='현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다']");
+        } catch (e) {
+            console.error('셀렉터를 찾는 동안 오류가 발생했습니다:', e);
+        }
 
-    // 수정된 셀렉터를 사용하여 정보 추출
-    const jejuData = await page.$$eval(
-        'table[summary="현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다"] tr:not(:first-child)',
-        rows => {
-            return rows.map(row => {
-                const columns = row.querySelectorAll('td');
-                const title = columns[2]?.querySelector('a')?.innerText.trim(); // 세 번째 열의 a 태그 내용
-                const day = columns[4]?.innerText.trim() + "~" + columns[6]?.innerText.trim() || '상시'; // 일곱 번째 열, 상시인 경우 '상시'로 표시
-                const url = columns[2]?.querySelector('a')?.href; // a 태그의 href
-                if (title && day && url) {
-                    return { title, day, url };
-                }
-                return undefined;
-            }).filter(Boolean); // undefined 항목 제거
-          });
+        const jejuData = await page.$$eval(
+            'table[summary="현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다"] tr:not(:first-child)',
+            rows => {
+                return rows.map(row => {
+                    const columns = row.querySelectorAll('td');
+                    const title = columns[2]?.querySelector('a')?.innerText.trim();
+                    const day = columns[4]?.innerText.trim() + "~" + columns[6]?.innerText.trim() || '상시';
+                    const url = columns[2]?.querySelector('a')?.href;
+                    if (title && day && url) {
+                        return { title, day, url };
+                    }
+                    return undefined;
+                }).filter(Boolean);
+            }
+        );
 
     // 아시아나 사이트 방문
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
@@ -134,49 +124,24 @@ return {
     '티웨이': ''
 };
 } catch (error) {
-    console.error("Error scraping data:", error);
-    return null;
+console.error("Error scraping data:", error);
+return null;
 } finally {
-    if (browser) {
-        await browser.close();
-    }
+if (browser) {
+    await browser.close();
+}
 }
 }
 
 module.exports = async (req, res) => {
-  try {
-    const data = await scrapeData();
-    if (data) {
-      res.status(200).json(data);
-    } else {
-      res.status(500).json({ error: 'Failed to fetch data' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch data' });
-  }
-};
-
-// 데이터를 주기적으로 업데이트하는 함수
-let cachedData = null;
-
-async function updateDataPeriodically() {
 try {
-    const data = await scrapeData();
-    if (data) {
-        cachedData = data;
-        console.log("Data updated successfully.");
-    } else {
-        console.error("Failed to update data.");
-    }
+const data = await scrapeData();
+if (data) {
+    res.status(200).json(data);
+} else {
+    res.status(500).json({ error: 'Failed to fetch data' });
+}
 } catch (error) {
-    console.error("Error updating data:", error);
+res.status(500).json({ error: 'Failed to fetch data' });
 }
-}
-
-// 서버 시작 시 데이터를 처음으로 업데이트하고, 이후 설정한 시간 간격(UPDATE_INTERVAL)으로 업데이트를 반복
-updateDataPeriodically();
-setInterval(updateDataPeriodically, UPDATE_INTERVAL);
-
-app.listen(PORT, () => {
-console.log(`Server is running on port ${PORT}`);
-});
+};
