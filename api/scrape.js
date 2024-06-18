@@ -143,18 +143,18 @@ return {
 }
 }
 
-app.get('/scrape', async (req, res) => {
-try {
+module.exports = async (req, res) => {
+  try {
     const data = await scrapeData();
     if (data) {
-        res.status(200).json(data);
+      res.status(200).json(data);
     } else {
-        res.status(500).json({ error: 'Failed to fetch data' });
+      res.status(500).json({ error: 'Failed to fetch data' });
     }
-} catch (error) {
+  } catch (error) {
     res.status(500).json({ error: 'Failed to fetch data' });
-}
-});
+  }
+};
 
 // 데이터를 주기적으로 업데이트하는 함수
 let cachedData = null;
