@@ -18,7 +18,6 @@ async function scrapeData() {
   let browser;
   try {
     browser = await puppeteer.launch({
-      executablePath: '/app/.apt/usr/bin/google-chrome',
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
