@@ -1,6 +1,6 @@
 require('dotenv').config();
 const chrome = require('chrome-aws-lambda');
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -18,20 +18,10 @@ async function scrapeData() {
   let browser;
   try {
     browser = await puppeteer.launch({
-      args: [
-        ...chrome.args,
-        '--hide-scrollbars',
-        '--disable-web-security',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--single-process'
-      ],
-      defaultViewport: chrome.defaultViewport,
-      executablePath: await chrome.executablePath,
-      headless: chrome.headless,
+      executablePath: '/app/.apt/usr/bin/google-chrome',
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
-
     const page = await browser.newPage();
 
     await page.setRequestInterception(true);
@@ -143,37 +133,37 @@ return {
     '에어서울': seoulData,
     '티웨이': ''
 };
-  } catch (error) {
-    console.error('Error during scraping:', error);
-    return null;
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
-  }
+} catch (error) {
+console.error('Error during scraping:', error);
+return null;
+} finally {
+if (browser) {
+  await browser.close();
+}
+}
 }
 
 app.get('/api', async (req, res) => {
-  if (cachedData) {
-    res.status(200).send(cachedData);
-  } else {
-    res.status(500).send({ message: "Failed to fetch data." });
-  }
+if (cachedData) {
+res.status(200).send(cachedData);
+} else {
+res.status(500).send({ message: "Failed to fetch data." });
+}
 });
 
 // 데이터를 주기적으로 업데이트하는 함수
 async function updateDataPeriodically() {
-  try {
-    const data = await scrapeData();
-    if (data) {
-      cachedData = data;
-      console.log("Data updated successfully.");
-    } else {
-      console.error("Failed to update data.");
-    }
-  } catch (error) {
-    console.error("Error updating data:", error);
-  }
+try {
+const data = await scrapeData();
+if (data) {
+  cachedData = data;
+  console.log("Data updated successfully.");
+} else {
+  console.error("Failed to update data.");
+}
+} catch (error) {
+console.error("Error updating data:", error);
+}
 }
 
 // 서버 시작 시 데이터를 처음으로 업데이트하고, 이후 설정한 시간 간격(UPDATE_INTERVAL)으로 업데이트를 반복
@@ -181,5 +171,5 @@ updateDataPeriodically();
 setInterval(updateDataPeriodically, UPDATE_INTERVAL);
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+console.log(`Server is running on port ${PORT}`);
 });
