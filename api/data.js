@@ -1,5 +1,6 @@
 require('dotenv').config();
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chrome = require('chrome-aws-lambda');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -12,13 +13,16 @@ app.use(cors());
 app.use(express.json());
 
 let cachedData = null;
+
 async function scrapeData() {
   let browser;
     browser = await puppeteer.launch({
-      executablePath: await puppeteer.executablePath(), // Puppeteer가 다운로드한 Chromium 경로 사용
+      executablePath: await chrome.executablePath,
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: chrome.args,
+      defaultViewport: chrome.defaultViewport,
     });
+
 const page = await browser.newPage();
 
     // 제주 사이트 방문
