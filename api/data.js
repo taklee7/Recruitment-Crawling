@@ -15,7 +15,7 @@ let cachedData = null;
 async function scrapeData() {
   let browser;
     browser = await puppeteer.launch({
-      executablePath: '/app/.apt/usr/bin/google-chrome',
+      executablePath: process.env.CHROME_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable', // 경로를 환경 변수로 설정
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
