@@ -154,7 +154,7 @@ app.get('/api/data', async (req, res) => {
 if (cachedData) {
 res.status(200).send(cachedData);
 } else {
-res.status(500).send({ message: "Failed to fetch data." });
+res.status(500).send({ message: "Failed to fetch data.", err});
 }
 });
 
