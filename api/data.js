@@ -16,14 +16,16 @@ let cachedData = null;
 
 async function scrapeData() {
   let browser;
+  try {
+    // Puppeteer 브라우저 설정
     browser = await puppeteer.launch({
       executablePath: await chrome.executablePath,
-      headless: true,
+      headless: chrome.headless,
       args: chrome.args,
       defaultViewport: chrome.defaultViewport,
     });
 
-const page = await browser.newPage();
+    const page = await browser.newPage();
 
     // 제주 사이트 방문
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
@@ -31,27 +33,28 @@ const page = await browser.newPage();
 
     // 요소가 로드될 때까지 대기
     try {
-        // 기존 셀렉터를 좀 더 명확한 것으로 수정
-        await page.waitForSelector("table[summary='현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다']");
+      // 기존 셀렉터를 좀 더 명확한 것으로 수정
+      await page.waitForSelector("table[summary='현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다']");
     } catch (e) {
-        console.error('셀렉터를 찾는 동안 오류가 발생했습니다:', e);
+      console.error('셀렉터를 찾는 동안 오류가 발생했습니다:', e);
     }
 
     // 수정된 셀렉터를 사용하여 정보 추출
     const jejuData = await page.$$eval(
-        'table[summary="현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다"] tr:not(:first-child)',
-        rows => {
-            return rows.map(row => {
-                const columns = row.querySelectorAll('td');
-                const title = columns[2]?.querySelector('a')?.innerText.trim(); // 세 번째 열의 a 태그 내용
-                const day = columns[4]?.innerText.trim() + "~" + columns[6]?.innerText.trim() || '상시'; // 일곱 번째 열, 상시인 경우 '상시'로 표시
-                const url = columns[2]?.querySelector('a')?.href; // a 태그의 href
-                if (title && day && url) {
-                    return { title, day, url };
-                }
-                return undefined;
-            }).filter(Boolean); // undefined 항목 제거
-          });
+      'table[summary="현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다"] tr:not(:first-child)',
+      rows => {
+        return rows.map(row => {
+          const columns = row.querySelectorAll('td');
+          const title = columns[2]?.querySelector('a')?.innerText.trim(); // 세 번째 열의 a 태그 내용
+          const day = columns[4]?.innerText.trim() + "~" + columns[6]?.innerText.trim() || '상시'; // 일곱 번째 열, 상시인 경우 '상시'로 표시
+          const url = columns[2]?.querySelector('a')?.href; // a 태그의 href
+          if (title && day && url) {
+            return { title, day, url };
+          }
+          return undefined;
+        }).filter(Boolean); // undefined 항목 제거
+      }
+    );
 
     // 아시아나 사이트 방문
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
@@ -138,29 +141,36 @@ return {
     '에어서울': seoulData,
     '티웨이': ''
 };
+} catch (error) {
+console.error("Error scraping data:", error);
+} finally {
+if (browser) {
+  await browser.close();
+}
+}
 }
 
 app.get('/api/data', async (req, res) => {
-  if (cachedData) {
-    res.status(200).send(cachedData);
-    } else {
-      res.status(500).send({ message: "Failed to fetch data." });
-    }
+if (cachedData) {
+res.status(200).send(cachedData);
+} else {
+res.status(500).send({ message: "Failed to fetch data." });
+}
 });
 
 // 데이터를 주기적으로 업데이트하는 함수
 async function updateDataPeriodically() {
-  try {
-    const data = await scrapeData();
-    if (data) {
-      cachedData = data;
-      console.log("Data updated successfully.");
-    } else {
-      console.error("Failed to update data.");
-    }
-  } catch (error) {
-    console.error("Error updating data:", error);
-  }
+try {
+const data = await scrapeData();
+if (data) {
+  cachedData = data;
+  console.log("Data updated successfully.");
+} else {
+  console.error("Failed to update data.");
+}
+} catch (error) {
+console.error("Error updating data:", error);
+}
 }
 
 // 서버 시작 시 데이터를 처음으로 업데이트하고, 이후 설정한 시간 간격(UPDATE_INTERVAL)으로 업데이트를 반복
