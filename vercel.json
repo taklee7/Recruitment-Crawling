@@ -6,7 +6,7 @@
     }
   },
   "functions": {
-    "api/index.js": {
+    "api/data.js": {
       "memory": 1024,
       "maxDuration": 10
     }
