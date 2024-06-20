@@ -1,6 +1,5 @@
 require('dotenv').config();
-const puppeteer = require('puppeteer-core');
-const chrome = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -19,13 +18,38 @@ async function scrapeData() {
   try {
     // Puppeteer 브라우저 설정
     browser = await puppeteer.launch({
-      executablePath: await chrome.executablePath,
-      headless: chrome.headless,
-      args: chrome.args,
-      defaultViewport: chrome.defaultViewport,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
+
+// 에어프레미아 사이트 방문
+await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
+await page.goto("https://airpremia.career.greetinghr.com/home#86313a15-5811-444a-83bb-76f37cae9cdf");
+
+// 요소가 로드될 때까지 대기
+try {
+    await page.waitForSelector(".Flex__FlexCol-sc-uu75bp-1.iKWWXF");
+} catch (e) {
+    console.error('셀렉터를 찾는 동안 오류가 발생했습니다:', e);
+}
+
+// 에어프레미아 정보 추출
+const premiaData = (await page.$$eval('.Flex__FlexCol-sc-uu75bp-1.iKWWXF a', elements => elements.map(el => {
+    const title = el.querySelector('.Textstyled__Text-sc-55g6e4-0.dYCGQ')?.innerText;
+    const day = el.querySelector('.날짜를_가리키는_셀렉터')?.innerText || ""; // 날짜를 가리키는 셀렉터를 실제로 사용해야 합니다.
+    const url = el.href;
+
+    // 요소가 null이 아닌 경우에만 객체 반환
+    if (title) {
+        return { title, day, url };
+    }
+    // 요소가 null인 경우, 삭제(또는 적절한 오류 처리)
+    return undefined;
+}))).filter(Boolean); // undefined 항목 제거
+
+console.log(premiaData);
 
     // 제주 사이트 방문
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
@@ -33,26 +57,25 @@ async function scrapeData() {
 
     // 요소가 로드될 때까지 대기
     try {
-      // 기존 셀렉터를 좀 더 명확한 것으로 수정
       await page.waitForSelector("table[summary='현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다']");
     } catch (e) {
       console.error('셀렉터를 찾는 동안 오류가 발생했습니다:', e);
     }
 
-    // 수정된 셀렉터를 사용하여 정보 추출
+    // 정보 추출
     const jejuData = await page.$$eval(
       'table[summary="현재 채용을 진행중인 채용공고 리스트와 접수 시작일, 마감일 입니다"] tr:not(:first-child)',
       rows => {
         return rows.map(row => {
           const columns = row.querySelectorAll('td');
-          const title = columns[2]?.querySelector('a')?.innerText.trim(); // 세 번째 열의 a 태그 내용
-          const day = columns[4]?.innerText.trim() + "~" + columns[6]?.innerText.trim() || '상시'; // 일곱 번째 열, 상시인 경우 '상시'로 표시
-          const url = columns[2]?.querySelector('a')?.href; // a 태그의 href
+          const title = columns[2]?.querySelector('a')?.innerText.trim();
+          const day = columns[4]?.innerText.trim() + "~" + columns[6]?.innerText.trim() || '상시';
+          const url = columns[2]?.querySelector('a')?.href;
           if (title && day && url) {
             return { title, day, url };
           }
           return undefined;
-        }).filter(Boolean); // undefined 항목 제거
+        }).filter(Boolean);
       }
     );
 
@@ -135,6 +158,7 @@ const seoulData = await page.$$eval('table[summary="현재 채용을 진행중�
     
 // 정보 출력 대신 데이터 반환
 return {
+    '에어프레미아': premiaData,
     '제주': jejuData,
     '아시아나': asianaData,
     '에어로케이': aeroKData,
@@ -154,11 +178,10 @@ app.get('/api/data', async (req, res) => {
 if (cachedData) {
 res.status(200).send(cachedData);
 } else {
-res.status(500).send({ message: "Failed to fetch data.", err});
+res.status(500).send({ message: "Failed to fetch data." });
 }
 });
 
-// 데이터를 주기적으로 업데이트하는 함수
 async function updateDataPeriodically() {
 try {
 const data = await scrapeData();
@@ -173,7 +196,6 @@ console.error("Error updating data:", error);
 }
 }
 
-// 서버 시작 시 데이터를 처음으로 업데이트하고, 이후 설정한 시간 간격(UPDATE_INTERVAL)으로 업데이트를 반복
 updateDataPeriodically();
 setInterval(updateDataPeriodically, UPDATE_INTERVAL);
 
