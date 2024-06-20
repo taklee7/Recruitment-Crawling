@@ -15,7 +15,6 @@ let cachedData = null;
 
 async function scrapeData() {
   let browser;
-  try {
     // Puppeteer 브라우저 설정
     browser = await puppeteer.launch({
       headless: true,
@@ -165,13 +164,6 @@ return {
     '에어서울': seoulData,
     '티웨이': ''
 };
-} catch (error) {
-console.error("Error scraping data:", error);
-} finally {
-if (browser) {
-  await browser.close();
-}
-}
 }
 
 app.get('/api/data', async (req, res) => {
