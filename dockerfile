@@ -1,5 +1,5 @@
 # 최신 Node.js LTS 버전 사용
-FROM node:18
+FROM node:20
 
 # Chrome 설치를 위한 종속성 패키지 설치
 RUN apt-get update && apt-get install -y \
@@ -14,6 +14,9 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add
   && apt-get install -y google-chrome-stable \
   --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
+
+# /usr/bin/google-chrome 확인
+RUN ls -l /usr/bin/google-chrome
 
 # 작업 디렉토리 설정
 WORKDIR /app

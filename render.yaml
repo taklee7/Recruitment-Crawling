@@ -7,6 +7,8 @@ services:
     envVars:
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
         value: 'false'
+      - key: CHROME_EXECUTABLE_PATH
+        value: '/usr/bin/google-chrome'
     build:
       packages:
         - gconf-service

@@ -1,5 +1,6 @@
 require('dotenv').config();
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chromium = require('chrome-aws-lambda');  // AWS Lambda 환경에서 Chrome 사용을 위한 모듈
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -15,12 +16,13 @@ let cachedData = null;
 
 async function scrapeData() {
   let browser;
-    // Puppeteer 브라우저 설정
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: '/usr/bin/google-chrome',  // Chrome 경로 명시
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+      // Puppeteer 브라우저 설정
+      browser = await puppeteer.launch({
+        headless: true,
+        executablePath: process.env.CHROME_EXECUTABLE_PATH || await chromium.executablePath,
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+      });
 
     const page = await browser.newPage();
 
