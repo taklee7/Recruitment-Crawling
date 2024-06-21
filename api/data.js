@@ -1,6 +1,6 @@
 require('dotenv').config();
+const chromium = require('chrome-aws-lambda');
 const puppeteer = require('puppeteer-core');
-const chromium = require('chrome-aws-lambda');  // AWS Lambda 환경에서 Chrome 사용을 위한 모듈
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -15,15 +15,14 @@ app.use(express.json());
 let cachedData = null;
 
 async function scrapeData() {
-  let browser;
-      // Puppeteer 브라우저 설정
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: await chromium.executablePath,
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-    });
-
+    let browser;
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath,
+        headless: chromium.headless,
+      });
+  
     const page = await browser.newPage();
 
 // 에어프레미아 사이트 방문
