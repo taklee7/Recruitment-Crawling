@@ -1,4 +1,11 @@
 {
+  "name": "recruitment-crawling",
+  "version": "1.0.0",
+  "description": "채용 크롤링 프로젝트",
+  "main": "api/data.js",
+  "scripts": {
+    "start": "node api/data.js"
+  },
   "dependencies": {
     "axios": "^1.6.8",
     "chrome-aws-lambda": "^9.1.0",
@@ -6,5 +13,6 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "puppeteer-core": "^22.11.2"
-  }
+  },
+  "license": "MIT"
 }
