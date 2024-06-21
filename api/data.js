@@ -17,12 +17,12 @@ let cachedData = null;
 async function scrapeData() {
   let browser;
       // Puppeteer 브라우저 설정
-      browser = await puppeteer.launch({
-        headless: true,
-        executablePath: process.env.CHROME_EXECUTABLE_PATH || await chromium.executablePath,
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-      });
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: await chromium.executablePath,
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+    });
 
     const page = await browser.newPage();
 
