@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: Recruitment-Crawling
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: 'false'
+    build:
+      packages:
+        - gconf-service
+        - libasound2
+        - libatk1.0-0
+        - libcups2
+        - libdbus-1-3
+        - libgtk-3-0
+        - libnspr4
+        - libnss3
+        - libxss1
+        - lsb-release
+        - xdg-utils
+        - wget
