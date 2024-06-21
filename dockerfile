@@ -26,4 +26,4 @@ RUN yarn install
 COPY . .
 
 # 애플리케이션 실행
-CMD ["node", "src/api/data.js"]
+CMD ["node", "api/data.js"]
