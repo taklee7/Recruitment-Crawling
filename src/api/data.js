@@ -18,6 +18,7 @@ async function scrapeData() {
     // Puppeteer 브라우저 설정
     browser = await puppeteer.launch({
       headless: true,
+      executablePath: '/usr/bin/google-chrome',  // Chrome 경로 명시
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
