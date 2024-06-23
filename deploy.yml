@@ -1,0 +1,33 @@
+name: Recruitment-Crawling
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Install Chrome
+        run: ./install-chrome.sh
+
+      - name: Run Puppeteer script
+        run: node api/data.js
+        env:
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
+
+      - name: Deploy to Render
+        run: render deploy --service puppeteer-app

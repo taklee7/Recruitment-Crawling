@@ -1,0 +1,7 @@
+    services:
+  - type: web
+    name: recruitment-crawling
+    env: node
+    plan: free
+    buildCommand: install-chrome.sh
+    startCommand: node api/data.js
